@@ -10,13 +10,13 @@ changed.
 
 ```bash
 # Inspect the current state without changing anything
-python3 ~/development/my-repos/linux-env/scripts/python/export_claude_sessions.py --dry-run
+python3 ./export_claude_sessions.py --dry-run
 
 # Export everything that's new or changed
-python3 ~/development/my-repos/linux-env/scripts/python/export_claude_sessions.py
+python3 ./export_claude_sessions.py
 
 # Export and git-commit the new transcripts
-python3 ~/development/my-repos/linux-env/scripts/python/export_claude_sessions.py --commit
+python3 ./export_claude_sessions.py --commit
 ```
 
 The script takes no positional args and its defaults (`--projects-dir`,
@@ -25,7 +25,7 @@ works from any working directory. Alias suggestion:
 
 ```bash
 # in ~/.zshrc / ~/.bashrc
-alias claude-export='python3 ~/development/my-repos/linux-env/scripts/python/export_claude_sessions.py'
+alias claude-export='python3 /path/to/claude-session-exporter/export_claude_sessions.py'
 # then, from anywhere:
 claude-export --commit           # export new/changed sessions and commit
 claude-export --force --commit   # re-export everything and commit
@@ -62,7 +62,7 @@ claude-export --force --commit   # re-export everything and commit
 `--dry-run` prints the full status table and writes nothing:
 
 ```bash
-python3 ~/development/my-repos/linux-env/scripts/python/export_claude_sessions.py --dry-run
+python3 ./export_claude_sessions.py --dry-run
 ```
 
 The table shows every session with these columns:
@@ -92,14 +92,14 @@ useful for finding a session id to plug into `--session-id`:
 
 ```bash
 # All sessions on the machine
-python3 ~/development/my-repos/linux-env/scripts/python/export_claude_sessions.py --list
+python3 ./export_claude_sessions.py --list
 
 # Filter down to something matchable — --filter also matches ai-title,
 # custom-title, and the first user message, not just paths and ids
-python3 ~/development/my-repos/linux-env/scripts/python/export_claude_sessions.py --list --filter DEX-21945
+python3 ./export_claude_sessions.py --list --filter DEX-21945
 
 # Grab just the UUIDs for scripting
-python3 ~/development/my-repos/linux-env/scripts/python/export_claude_sessions.py --list --filter livy | cut -f1
+python3 ./export_claude_sessions.py --list --filter livy | cut -f1
 ```
 
 `name` is the AI-generated title (or user-set custom title if present),
@@ -116,16 +116,16 @@ unambiguous prefix. It:
 
 ```bash
 # From --list, grab the UUID (or a unique prefix) then:
-python3 ~/development/my-repos/linux-env/scripts/python/export_claude_sessions.py \
+python3 ./export_claude_sessions.py \
     --session-id 57bc07c7 --commit
 ```
 
 Chained one-liner:
 
 ```bash
-uuid=$(python3 ~/development/my-repos/linux-env/scripts/python/export_claude_sessions.py \
+uuid=$(python3 ./export_claude_sessions.py \
         --list --filter DEX-21945 | cut -f1 | head -1)
-python3 ~/development/my-repos/linux-env/scripts/python/export_claude_sessions.py \
+python3 ./export_claude_sessions.py \
     --session-id "$uuid" --commit
 ```
 
@@ -137,7 +137,7 @@ user message (case-insensitive substring match).
 
 ```bash
 # Only sessions whose title or path mentions 'livy'
-python3 ~/development/my-repos/linux-env/scripts/python/export_claude_sessions.py --dry-run --filter livy
+python3 ./export_claude_sessions.py --dry-run --filter livy
 ```
 
 ## Force a full re-export
@@ -146,9 +146,9 @@ Useful after editing the markdown template, changing the metadata reader, or
 wiping the destination:
 
 ```bash
-python3 ~/development/my-repos/linux-env/scripts/python/export_claude_sessions.py --force
-python3 ~/development/my-repos/linux-env/scripts/python/export_claude_sessions.py --force --filter linux-env  # subset
-python3 ~/development/my-repos/linux-env/scripts/python/export_claude_sessions.py --force --dry-run           # preview
+python3 ./export_claude_sessions.py --force
+python3 ./export_claude_sessions.py --force --filter linux-env  # subset
+python3 ./export_claude_sessions.py --force --dry-run           # preview
 ```
 
 `--force` and `--session-id` overlap: `--session-id` already implies force, so
@@ -256,13 +256,13 @@ each session's jsonl currently says.
 
 ```bash
 # Preview against the live state file
-python3 ~/development/my-repos/linux-env/scripts/python/session_rename_report.py
+python3 ./session_rename_report.py
 
 # Or against a pre-change snapshot (useful when investigating a rename after
 # already running --force)
 cp ~/.claude/session-export-state.json /tmp/state-before.json
 # ... make some change to the exporter's metadata reader ...
-python3 ~/development/my-repos/linux-env/scripts/python/session_rename_report.py --state /tmp/state-before.json
+python3 ./session_rename_report.py --state /tmp/state-before.json
 ```
 
 Output is TAB-separated with columns `status`, `session_id`, `kind` (`md` /
