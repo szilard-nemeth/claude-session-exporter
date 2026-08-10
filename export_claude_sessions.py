@@ -86,11 +86,11 @@ class Session:
 
     @property
     def md_dest(self) -> Path:
-        return Path(self.project_slug) / f"{self.short_name}.md"
+        return Path(output_dir_name(self.project_slug)) / f"{self.short_name}.md"
 
     @property
     def jsonl_dest(self) -> Path:
-        return Path(self.project_slug) / f"{self.short_name}.jsonl"
+        return Path(output_dir_name(self.project_slug)) / f"{self.short_name}.jsonl"
 
 
 # ---------------------------------------------------------------------------
@@ -101,6 +101,17 @@ class Session:
 def decode_project_slug(slug: str) -> str:
     """`-Users-snemeth-foo` -> `/Users/snemeth/foo` (display only)."""
     return slug.replace("-", "/")
+
+
+def output_dir_name(slug: str) -> str:
+    """Directory name used on disk for a project's exports.
+
+    Claude stores project dirs as `-Users-snemeth-...` (the leading `-` comes
+    from encoding `~`/root `/`). Strip the leading dash so the exported tree
+    doesn't have every top-level directory start with `-` — which also confuses
+    CLIs that interpret leading `-` as a flag.
+    """
+    return slug.lstrip("-") or slug
 
 
 _SLUG_BAD = re.compile(r"[^a-z0-9]+")
@@ -492,7 +503,7 @@ def _parse_iso_ts(ts: Optional[str]) -> Optional[float]:
 
 
 def export_session(session: Session, dest_dir: Path) -> tuple[Path, Path]:
-    out_dir = dest_dir / session.project_slug
+    out_dir = dest_dir / output_dir_name(session.project_slug)
     out_dir.mkdir(parents=True, exist_ok=True)
     md_path = out_dir / f"{session.short_name}.md"
     jsonl_path = out_dir / f"{session.short_name}.jsonl"
@@ -637,7 +648,7 @@ def write_project_indexes(
             )
         lines.append("")
 
-        out_path = dest_dir / project_slug / "_INDEX.md"
+        out_path = dest_dir / output_dir_name(project_slug) / "_INDEX.md"
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text("\n".join(lines), encoding="utf-8")
         written.append(out_path)
