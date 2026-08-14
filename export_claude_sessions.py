@@ -375,10 +375,21 @@ def save_state(path: Path, state: dict) -> None:
 
 
 def export_status(session: Session, state: dict) -> str:
-    """Returns 'fresh', 'stale', or 'never'."""
+    """Returns 'fresh', 'stale', 'never', or 'missing'.
+
+    `missing` means state remembers exporting this session, but one or both of
+    the recorded output files have been deleted from disk (e.g. the user
+    manually removed the .md). We treat that as "needs export" so the next run
+    re-creates the file — otherwise a matching source_mtime keeps it "fresh"
+    forever and the deletion silently sticks.
+    """
     entry = state["entries"].get(str(session.source_path))
     if not entry:
         return "never"
+    md_path = entry.get("md_path")
+    jsonl_path = entry.get("jsonl_path")
+    if (md_path and not Path(md_path).exists()) or (jsonl_path and not Path(jsonl_path).exists()):
+        return "missing"
     prev_mtime = float(entry.get("source_mtime", 0))
     # Allow a tiny epsilon; mtime can wobble at FS resolution.
     if session.source_mtime > prev_mtime + 1e-6:
@@ -577,7 +588,8 @@ def _export_pending(
             "project_label": s.project_label,
         }
         written.extend([md_path, jsonl_path])
-        console.print(f"[green]exported[/green] {s.project_label} / {s.session_id}")
+        # console.print(f"[green]exported[/green] {s.project_label} / session id: {s.session_id} / Destination: {md_path}")
+        console.print(f"[green]exported to: [/green] {md_path}")
     return written
 
 
@@ -606,9 +618,16 @@ def write_project_indexes(
     for s in sessions:
         # Only include sessions that have actually been exported at least once —
         # unexported ones don't correspond to files on disk yet, and the index
-        # is meant to describe the exported directory.
-        if str(s.source_path) in state["entries"]:
-            by_project.setdefault(s.project_slug, []).append(s)
+        # is meant to describe the exported directory. Also skip entries whose
+        # recorded .md no longer exists on disk (user deleted it) — otherwise
+        # the index links to a missing file until the next export re-creates it.
+        entry = state["entries"].get(str(s.source_path))
+        if not entry:
+            continue
+        md_path = entry.get("md_path")
+        if md_path and not Path(md_path).exists():
+            continue
+        by_project.setdefault(s.project_slug, []).append(s)
 
     written: list[Path] = []
     now = _dt.datetime.now().replace(microsecond=0).isoformat()
@@ -976,7 +995,7 @@ def main(
     if force:
         pending = list(sessions)
     else:
-        pending = [s for s in sessions if export_status(s, state) in ("never", "stale")]
+        pending = [s for s in sessions if export_status(s, state) in ("never", "stale", "missing")]
 
     if show_result_tables:
         console.print(render_table(sessions, state, dest_dir, title="Claude session transcripts (before)", sort=sort))
