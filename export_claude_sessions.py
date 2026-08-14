@@ -899,6 +899,12 @@ def commit_repo(repo: Path, paths: list[Path], message: str, console: Console) -
     is_flag=True,
     help="After exporting, git-commit the new transcripts in the knowledge-base repo.",
 )
+@click.option(
+    "--show-result-tables",
+    "show_result_tables",
+    is_flag=True,
+    help="Show before and after tables with 'Claude session transcripts'.",
+)
 def main(
     projects_dir: Path,
     dest_dir: Path,
@@ -910,6 +916,7 @@ def main(
     dry_run: bool,
     force: bool,
     do_commit: bool,
+        show_result_tables: bool,
 ) -> None:
     """Export unexported Claude session transcripts."""
     console = Console()
@@ -971,7 +978,8 @@ def main(
     else:
         pending = [s for s in sessions if export_status(s, state) in ("never", "stale")]
 
-    console.print(render_table(sessions, state, dest_dir, title="Claude session transcripts (before)", sort=sort))
+    if show_result_tables:
+        console.print(render_table(sessions, state, dest_dir, title="Claude session transcripts (before)", sort=sort))
     if force:
         console.print(f"\n[bold]--force[/bold]: re-exporting all [bold]{len(pending)}[/bold] session(s).")
     else:
@@ -1000,8 +1008,9 @@ def main(
         console.print(f"[cyan]Wrote {len(index_paths)} _INDEX.md file(s).[/cyan]")
     written_paths.extend(index_paths)
 
-    # Re-render after exports so the user sees the updated status column.
-    console.print(render_table(sessions, state, dest_dir, title="Claude session transcripts (after)", sort=sort))
+    if show_result_tables:
+        # Re-render after exports so the user sees the updated status column.
+        console.print(render_table(sessions, state, dest_dir, title="Claude session transcripts (after)", sort=sort))
 
     if do_commit:
         today = _dt.date.today().isoformat()
